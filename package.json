@@ -1,0 +1,29 @@
+{
+  "name": "braintree-server",
+  "version": "1.0.0",
+  "description": "Braintree payment server for iOS app",
+  "main": "braintree-server.js",
+  "scripts": {
+    "start": "node braintree-server.js",
+    "dev": "nodemon braintree-server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "braintree": "^3.0.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.0.3",
+    "express": "^4.18.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+  },
+  "keywords": [
+    "braintree",
+    "paypal",
+    "payment",
+    "ios",
+    "swift"
+  ],
+  "author": "Your Name",
+  "license": "MIT"
+}
