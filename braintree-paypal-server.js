@@ -1,6 +1,5 @@
 const express = require('express');
 const braintree = require('braintree');
-const paypal = require('@paypal/checkout-server-sdk');
 const cors = require('cors');
 require('dotenv').config();
 const axios = require('axios');
@@ -19,21 +18,6 @@ const gateway = new braintree.BraintreeGateway({
   publicKey: process.env.BRAINTREE_PUBLIC_KEY,
   privateKey: process.env.BRAINTREE_PRIVATE_KEY,
 });
-
-// PayPal configuration
-let environment;
-if (process.env.PAYPAL_ENVIRONMENT === 'production') {
-  environment = new paypal.core.LiveEnvironment(
-    process.env.PAYPAL_CLIENT_ID,
-    process.env.PAYPAL_CLIENT_SECRET
-  );
-} else {
-  environment = new paypal.core.SandboxEnvironment(
-    process.env.PAYPAL_CLIENT_ID,
-    process.env.PAYPAL_CLIENT_SECRET
-  );
-}
-const paypalClient = new paypal.core.PayPalHttpClient(environment);
 
 // ===== BRAINTREE ENDPOINTS =====
 
