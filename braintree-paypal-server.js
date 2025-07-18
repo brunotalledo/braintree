@@ -258,7 +258,7 @@ app.post('/api/paypal/payouts', async (req, res) => {
       return res.status(400).json({ error: 'Invalid amount' });
     }
 
-    const emailRegex = /^[^\s@]+@[^\\s@]+\.[^\s@]+$/;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(paypalEmail)) {
       return res.status(400).json({ error: 'Invalid PayPal email' });
     }
@@ -339,32 +339,46 @@ app.post('/api/paypal/payouts', async (req, res) => {
 app.get('/api/paypal/payouts/:payoutId/status', async (req, res) => {
   try {
     const { payoutId } = req.params;
-    
     if (!payoutId) {
       return res.status(400).json({ error: 'Payout ID is required' });
     }
 
-    const request = new paypal.payouts.PayoutsGetRequest(payoutId);
-    const response = await paypalClient.execute(request);
-    
-    if (response.result.batch_header) {
+    // Get OAuth2 token
+    const tokenResponse = await axios({
+      method: 'post',
+      url: `https://api-m.sandbox.paypal.com/v1/oauth2/token`,
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      auth: {
+        username: process.env.PAYPAL_CLIENT_ID,
+        password: process.env.PAYPAL_CLIENT_SECRET,
+      },
+      data: qs.stringify({ grant_type: 'client_credentials' }),
+    });
+    const accessToken = tokenResponse.data.access_token;
+
+    // Get payout status
+    const statusResponse = await axios({
+      method: 'get',
+      url: `https://api-m.sandbox.paypal.com/v1/payments/payouts/${payoutId}`,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`,
+      },
+    });
+
+    if (statusResponse.data && statusResponse.data.batch_header) {
       res.json({
         success: true,
-        status: response.result.batch_header.batch_status,
-        payoutId: response.result.batch_header.payout_batch_id,
-        timeCompleted: response.result.batch_header.time_completed
+        status: statusResponse.data.batch_header.batch_status,
+        payoutId: statusResponse.data.batch_header.payout_batch_id,
+        timeCompleted: statusResponse.data.batch_header.time_completed
       });
     } else {
       res.status(404).json({ error: 'Payout not found' });
     }
   } catch (error) {
-    console.error('Error checking payout status:', error);
-    
-    if (error.statusCode === 404) {
-      res.status(404).json({ error: 'Payout not found' });
-    } else {
-      res.status(500).json({ error: 'Failed to check payout status' });
-    }
+    console.error('Error checking payout status:', error.response ? error.response.data : error.message);
+    res.status(500).json({ error: 'Failed to check payout status' });
   }
 });
 
@@ -372,36 +386,44 @@ app.get('/api/paypal/payouts/:payoutId/status', async (req, res) => {
 app.get('/api/paypal/payouts/:payoutId', async (req, res) => {
   try {
     const { payoutId } = req.params;
-    
     if (!payoutId) {
       return res.status(400).json({ error: 'Payout ID is required' });
     }
 
-    const request = new paypal.payouts.PayoutsGetRequest(payoutId);
-    const response = await paypalClient.execute(request);
-    
-    if (response.result) {
+    // Get OAuth2 token
+    const tokenResponse = await axios({
+      method: 'post',
+      url: `https://api-m.sandbox.paypal.com/v1/oauth2/token`,
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      auth: {
+        username: process.env.PAYPAL_CLIENT_ID,
+        password: process.env.PAYPAL_CLIENT_SECRET,
+      },
+      data: qs.stringify({ grant_type: 'client_credentials' }),
+    });
+    const accessToken = tokenResponse.data.access_token;
+
+    // Get payout details
+    const detailsResponse = await axios({
+      method: 'get',
+      url: `https://api-m.sandbox.paypal.com/v1/payments/payouts/${payoutId}`,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`,
+      },
+    });
+
+    if (detailsResponse.data) {
       res.json({
         success: true,
-        payout: {
-          id: response.result.batch_header.payout_batch_id,
-          status: response.result.batch_header.batch_status,
-          timeCreated: response.result.batch_header.time_created,
-          timeCompleted: response.result.batch_header.time_completed,
-          items: response.result.items || []
-        }
+        payout: detailsResponse.data
       });
     } else {
       res.status(404).json({ error: 'Payout not found' });
     }
   } catch (error) {
-    console.error('Error getting payout details:', error);
-    
-    if (error.statusCode === 404) {
-      res.status(404).json({ error: 'Payout not found' });
-    } else {
-      res.status(500).json({ error: 'Failed to get payout details' });
-    }
+    console.error('Error getting payout details:', error.response ? error.response.data : error.message);
+    res.status(500).json({ error: 'Failed to get payout details' });
   }
 });
 
