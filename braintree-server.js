@@ -238,12 +238,7 @@ app.delete('/api/braintree/payment-methods/:token', async (req, res) => {
   }
 });
 
-// Healthcheck route for Railway
-app.get('/', (req, res) => {
-  res.send('Braintree server is running!');
-});
-
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Braintree server running on port ${PORT}`);
-});
+}); 
